@@ -565,6 +565,7 @@ namespace ReadAndPlay
         public void Stop()
         {
             timer1.Stop();
+            
             isPlaying = false;
         }
         public void Zoom(int leftSample, int rightSample)
@@ -614,6 +615,25 @@ namespace ReadAndPlay
 
 
         }
+        public void paintMeasure()
+        {
+            ////double time = Tools.Linspace();
+
+            //Bitmap bmp = new Bitmap(this.pnlTop.Width, this.pnlTop.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+            ////RectangleF rectf = new RectangleF(70, 90, 90, 50);
+            //RectangleF rectf = new RectangleF(0, 0, 20, 20);
+            //Graphics g = Graphics.FromImage(bmp);
+
+            //g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            //g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+            //g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+            //g.DrawString("3.4\n  |", new Font("Tahoma", 8), Brushes.Black, rectf);
+
+            //g.Flush();
+
+            //pnlTop.BackgroundImage = bmp;
+        }
         private void setTextCurTime()
         {
             string curTime = "";
@@ -633,7 +653,5 @@ namespace ReadAndPlay
             }// seconds la tong giay
             lbCurTime.Text = curTime;
         }
-
-        
     }
 }

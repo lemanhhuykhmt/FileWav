@@ -23,6 +23,8 @@ namespace ReadAndPlay
         private long leftCopy, rightCopy;
         private string fileName1 = "";
         private string fileName2 = "";
+        private bool isCut = false;
+        private DEFINE.STATUS status = DEFINE.STATUS.STOP;
         public WaveFileReader Wave
         {
             set
@@ -31,6 +33,7 @@ namespace ReadAndPlay
                 if (wave != null)
                 {
                     channel = new WaveChannel32(wave);
+                    showFormat();
                 }
             }
             get
@@ -44,7 +47,16 @@ namespace ReadAndPlay
             output = new DirectSoundOut();
 
         }
-
+        private void showFormat()
+        {
+            if(wave != null)
+            {
+                lbTanSo.Text = wave.WaveFormat.SampleRate + "Hz";
+                lbChieuSau.Text = wave.WaveFormat.BitsPerSample + "bit";
+                lbLoaiKenh.Text = wave.WaveFormat.Channels == 1 ? "Mono" : "Stereo";
+                lbKichThuoc.Text = wave.WaveFormat.Channels * wave.WaveFormat.BitsPerSample / 8 + "byte";
+            }
+        }
         private void btnOpen_Click(object sender, EventArgs e)
         {
             OpenFileDialog open = new OpenFileDialog();
@@ -69,27 +81,55 @@ namespace ReadAndPlay
             }
             lbMax.Text = wave.TotalTime.Minutes.ToString() + ":" + wave.TotalTime.Seconds.ToString();
             lbCur.Text = "0 : 0";
-
-
+            status = DEFINE.STATUS.READY;
         }
 
 
 
         private void btnPlay_Click(object sender, EventArgs e)
         {
-
-            output.Init(channel);
-            output.Play();
-            if (selectedWave == 1)
+            if (status == DEFINE.STATUS.READY)
             {
-                cwvNumber1.Play();
+                status = DEFINE.STATUS.RUNNING;
+                output.Init(channel);
+                output.Play();
+                if (selectedWave == 1)
+                {
+                    cwvNumber1.Play();
+                }
+                else if (selectedWave == 2)
+                {
+                    cwvNumber2.Play();
+                }
+                timer1.Interval = 100;
+                timer1.Start();
             }
-            else if (selectedWave == 2)
+            else if(status == DEFINE.STATUS.RUNNING)
             {
-                cwvNumber2.Play();
+                status = DEFINE.STATUS.PAUSE;
+                output.Pause();
+                if (selectedWave == 1)
+                {
+                    cwvNumber1.Pause();
+                }
+                else if (selectedWave == 2)
+                {
+                    cwvNumber2.Pause();
+                }
             }
-            timer1.Interval = 100;
-            timer1.Start();
+            else if(status == DEFINE.STATUS.PAUSE)
+            {
+                status = DEFINE.STATUS.RUNNING;
+                output.Play();
+                if (selectedWave == 1)
+                {
+                    cwvNumber1.Play();
+                }
+                else if (selectedWave == 2)
+                {
+                    cwvNumber2.Play();
+                }
+            }
         }
 
         private void timer1_Tick(object sender, EventArgs e)
@@ -98,7 +138,18 @@ namespace ReadAndPlay
             {
                 if (channel.Position > channel.Length)
                 {
+                    status = DEFINE.STATUS.READY;
+                    channel.Position = 0;
                     output.Stop();
+                    output.Init(channel);
+                    if (selectedWave == 1)
+                    {
+                        cwvNumber1.WaveStream.Position = 0;
+                    }
+                    else if (selectedWave == 2)
+                    {
+                        cwvNumber2.WaveStream.Position = 0;
+                    }
                 }
                 lbCur.Text = wave.CurrentTime.Minutes.ToString() + ":" + wave.CurrentTime.Seconds.ToString();
             }
@@ -167,11 +218,13 @@ namespace ReadAndPlay
             ContextMenuStrip contextMenuStrip = i.Owner as ContextMenuStrip;
             if (contextMenuStrip.SourceControl.Equals(cwvNumber1))
             {
-
+                waveCopy = cwvNumber1.Copy(out leftCopy, out rightCopy);
+                isCut = true;
             }
             else if (contextMenuStrip.SourceControl.Equals(cwvNumber2))
             {
-
+                waveCopy = cwvNumber2.Copy(out leftCopy, out rightCopy);
+                isCut = true;
             }
         }
 
@@ -182,12 +235,21 @@ namespace ReadAndPlay
             if (contextMenuStrip.SourceControl.Equals(cwvNumber1))
             {
 
-                ConCatWaveFile(wave, cwvNumber1.WaveStream as WaveFileReader, leftCopy, rightCopy);
+                ConCatWaveFile(waveCopy, cwvNumber1.WaveStream as WaveFileReader, leftCopy, rightCopy);
+                if(isCut)
+                {
+                    DeleteWaveFile(waveCopy, leftCopy, rightCopy);
+                    isCut = false;
+                }
             }
             else if (contextMenuStrip.SourceControl.Equals(cwvNumber2))
             {
-                ConCatWaveFile(wave, cwvNumber2.WaveStream as WaveFileReader, leftCopy, rightCopy);
-
+                ConCatWaveFile(waveCopy, cwvNumber2.WaveStream as WaveFileReader, leftCopy, rightCopy);
+                if (isCut)
+                {
+                    DeleteWaveFile(waveCopy, leftCopy, rightCopy);
+                    isCut = false;
+                }
             }
         }
 
@@ -242,7 +304,7 @@ namespace ReadAndPlay
             temp.Dispose();
             des.Dispose();
             // xoá file đích
-            if (selectedWave == 1)
+            if (des.Equals(cwvNumber1.WaveStream))
             {
                 CopyWaveFile(fileName1, temp.Filename);
                 Wave = new WaveFileReader(fileName1);
@@ -256,7 +318,7 @@ namespace ReadAndPlay
                 lbMax.Text = wave.TotalTime.Minutes.ToString() + ":" + wave.TotalTime.Seconds.ToString();
                 lbCur.Text = "0 : 0";
             }
-            else if (selectedWave == 2)
+            else if (des.Equals(cwvNumber2.WaveStream))
             {
                 CopyWaveFile(fileName2, temp.Filename);
                 Wave = new WaveFileReader(fileName2);
@@ -271,6 +333,68 @@ namespace ReadAndPlay
             }
         }
 
+        private void DeleteWaveFile(WaveFileReader sou, long startPos, long endPos)
+        {
+            // tạo file temp 
+            WaveFileWriter temp = new WaveFileWriter("temp.wav", sou.WaveFormat);
+            sou.Position = 0;
+            var buffer = new byte[1024];
+            // lưu từ đầu đến star
+            while (sou.Position < startPos)
+            {
+                var bytesRequired = (int)(startPos - sou.Position);
+                if (bytesRequired <= 0) continue;
+                var bytesToRead = Math.Min(bytesRequired, buffer.Length);
+                var bytesRead = sou.Read(buffer, 0, bytesToRead);
+                if (bytesRead > 0)
+                {
+                    temp.Write(buffer, 0, bytesRead);
+                }
+            }
+            // lưu tiêp từ end đên hết
+            sou.Position = endPos;
+            while (sou.Position < sou.Length)
+            {
+                var bytesRequired = (int)(sou.Length - sou.Position);
+                if (bytesRequired <= 0) continue;
+                var bytesToRead = Math.Min(bytesRequired, buffer.Length);
+                var bytesRead = sou.Read(buffer, 0, bytesToRead);
+                if (bytesRead > 0)
+                {
+                    temp.Write(buffer, 0, bytesRead);
+                }
+            }
+            // ghi đè lại sou
+            temp.Dispose();
+            sou.Dispose();
+            if (sou.Equals(cwvNumber1.WaveStream))
+            {
+                CopyWaveFile(fileName1, temp.Filename);
+                Wave = new WaveFileReader(fileName1);
+
+                cwvNumber1.WaveStream = wave;
+                cwvNumber1.Painting();
+                cwvNumber1.FitToScreen();
+                cwvNumber1.WaveStream.Position = 0;
+
+
+                lbMax.Text = wave.TotalTime.Minutes.ToString() + ":" + wave.TotalTime.Seconds.ToString();
+                lbCur.Text = "0 : 0";
+            }
+            else if (sou.Equals(cwvNumber2.WaveStream))
+            {
+                CopyWaveFile(fileName2, temp.Filename);
+                Wave = new WaveFileReader(fileName2);
+
+                cwvNumber2.WaveStream = wave;
+                cwvNumber2.Painting();
+                cwvNumber2.FitToScreen();
+                cwvNumber2.WaveStream.Position = 0;
+
+                lbMax.Text = wave.TotalTime.Minutes.ToString() + ":" + wave.TotalTime.Seconds.ToString();
+                lbCur.Text = "0 : 0";
+            }
+        }
 
         private void CopyWaveFile(string destinationFile, string sourceFile)
         {
