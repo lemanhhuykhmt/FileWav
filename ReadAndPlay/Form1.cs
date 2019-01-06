@@ -70,6 +70,7 @@ namespace ReadAndPlay
                 cwvNumber1.Painting();
                 cwvNumber1.FitToScreen();
                 cwvNumber1.WaveStream.Position = 0;
+                cwvNumber1.Focus();
             }
             else if (selectedWave == 2)
             {
@@ -78,6 +79,7 @@ namespace ReadAndPlay
                 cwvNumber2.Painting();
                 cwvNumber2.FitToScreen();
                 cwvNumber2.WaveStream.Position = 0;
+                cwvNumber2.Focus();
             }
             lbMax.Text = wave.TotalTime.Minutes.ToString() + ":" + wave.TotalTime.Seconds.ToString();
             lbCur.Text = "0 : 0";
@@ -96,10 +98,12 @@ namespace ReadAndPlay
                 if (selectedWave == 1)
                 {
                     cwvNumber1.Play();
+                    cwvNumber1.Focus();
                 }
                 else if (selectedWave == 2)
                 {
                     cwvNumber2.Play();
+                    cwvNumber2.Focus();
                 }
                 timer1.Interval = 100;
                 timer1.Start();
@@ -268,7 +272,7 @@ namespace ReadAndPlay
         private void ConCatWaveFile(WaveFileReader sou, WaveFileReader des, long startPos, long endPos)
         {
             // lưu toàn bộ file đích vào temp
-            WaveFileWriter temp = new WaveFileWriter("temp.wav", sou.WaveFormat);
+            WaveFileWriter temp = new WaveFileWriter("temp.wav", des.WaveFormat);
             // des.Filename = "";
             des.Position = 0;
             var end = (int)des.Length;

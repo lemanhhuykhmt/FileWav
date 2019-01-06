@@ -35,7 +35,7 @@ namespace ReadAndPlay
         private void pnlMid_MouseDown(object sender, MouseEventArgs e)
         {
             if (waveStream == null) return;
-            if (e.Button == System.Windows.Forms.MouseButtons.Right)
+            if (e.Button == System.Windows.Forms.MouseButtons.Middle)
             {
                 startPos = e.Location;
                 oldPos = new Point(-1, -1);
@@ -87,7 +87,7 @@ namespace ReadAndPlay
         private void pnlMid_MouseUp(object sender, MouseEventArgs e)
         {
             if (waveStream == null) return;
-            if (mouseDrag && e.Button == System.Windows.Forms.MouseButtons.Right)
+            if (mouseDrag && e.Button == System.Windows.Forms.MouseButtons.Middle)
             {
                 mouseDrag = false;
                 //DrawVerticalLine(startPos.X, Color.Black);
@@ -106,11 +106,19 @@ namespace ReadAndPlay
                 Zoom(leftSample, rightSample);
 
             }
-            else if (e.Button == System.Windows.Forms.MouseButtons.Middle) FitToScreen();
+            //else if (e.Button == System.Windows.Forms.MouseButtons.Middle) FitToScreen();
             pnlVerticalLineBegin.Visible = false;
             pnlVerticalLineEnd.Visible = false;
         }
-
+        private void CustomWaveViewer_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == 'r')
+            {
+                FitToScreen();
+                pnlVerticalLineBegin.Visible = false;
+                pnlVerticalLineEnd.Visible = false;
+            }
+        }
         protected override void OnResize(EventArgs e)
         {
             base.OnResize(e);
@@ -409,6 +417,7 @@ namespace ReadAndPlay
             this.Controls.Add(this.pnlTop);
             this.Name = "CustomWaveViewer";
             this.Size = new System.Drawing.Size(843, 491);
+            this.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.CustomWaveViewer_KeyPress);
             this.pnlMid.ResumeLayout(false);
             this.pnlMid.PerformLayout();
             this.ResumeLayout(false);
@@ -534,9 +543,6 @@ namespace ReadAndPlay
             leftPosition = leftSample * bytesPerSample;
             rightPosition = rightSample * bytesPerSample;
             return waveStream as WaveFileReader;
-            //byte[] result = new byte[rightPosition - leftPosition];
-            //waveStream.
-
         }
 
         public void FitToScreen()
@@ -653,5 +659,7 @@ namespace ReadAndPlay
             }// seconds la tong giay
             lbCurTime.Text = curTime;
         }
+
+        
     }
 }
